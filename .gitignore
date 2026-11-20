@@ -1,0 +1,8 @@
+node_modules/
+
+# The documentation site's build and the pages it stages from the README.
+docs-site/.nuxt
+docs-site/.docs-content
+docs-site/dist
+# The mark the library copies in as the site icon and favicon.
+docs-site/static/icon.svg
