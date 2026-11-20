@@ -7,17 +7,33 @@
  */
 
 /*
- * jsDelivr first, raw.githubusercontent second. The CDN is the published
- * route and the one that survives traffic; the raw file is the origin it
- * mirrors, so a CDN outage leaves the site a way through rather than an
- * empty page.
+ * The origin first, the CDN second.
+ *
+ * jsDelivr is the registry's published route, and for a file it serves by
+ * tag it is the right one. By branch it is not: it caches the name-to-commit
+ * resolution as well as the file, so a `@main` path keeps serving the
+ * previous commit for up to twelve hours, and purging the file does not
+ * re-resolve the branch. Measured after a merge, with a purge that reported
+ * success: the CDN still answered with the registry as it stood before.
+ *
+ * A stale answer is worse here than a slow one. At build time it bakes a
+ * missing module into static HTML that stays wrong until the next deploy,
+ * and in the browser it would replace a fresh list with an older one. So the
+ * origin is read first and the CDN stands behind it, which is the way round
+ * that makes the refresh worth doing at all.
+ *
+ * Once the registry publishes tags, a tagged jsDelivr path can lead again.
  */
 export const SOURCES = [
-  'https://cdn.jsdelivr.net/gh/druxt/modules@main/modules.json',
   'https://raw.githubusercontent.com/druxt/modules/main/modules.json',
+  'https://cdn.jsdelivr.net/gh/druxt/modules@main/modules.json',
 ]
 
-/** Where the registry's own icons are served from. */
+/*
+ * Where the registry's own icons are served from. The CDN leads here, because
+ * an icon that arrives a few hours late costs a reader nothing, and these are
+ * the requests a page actually repeats.
+ */
 export const ICON_BASE = 'https://cdn.jsdelivr.net/gh/druxt/modules@main/icons/'
 
 /*
