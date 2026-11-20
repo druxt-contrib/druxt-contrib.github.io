@@ -15,7 +15,7 @@
  */
 import { get } from 'https'
 
-import { SOURCES } from './registry'
+import { SOURCES, contrib, siteSitemaps, title } from './registry'
 
 /*
  * Reads the module registry while the site is built.
@@ -66,83 +66,120 @@ const registry = async () => {
       failures.push(error.message)
     }
   }
-  throw new Error(`The module registry could not be read.\n${failures.join('\n')}`)
+  throw new Error(
+    `The module registry could not be read.\n${failures.join('\n')}`
+  )
 }
 
 const repository = (process.env.GITHUB_REPOSITORY || '').split('/')[1]
-const base = repository && !repository.endsWith('.github.io') ? `/${repository}/` : '/'
+const base =
+  repository && !repository.endsWith('.github.io') ? `/${repository}/` : '/'
 
-export default async () => ({
-  target: 'static',
-  ssr: true,
+const ORIGIN = 'https://contrib.druxtjs.org'
 
-  router: { base },
+export default async () => {
+  // Read once: the page is built from it and robots.txt lists the sitemaps
+  // of the sites it names.
+  const modules = await registry()
 
-  publicRuntimeConfig: {
-    // The registry as it stood when this site was built.
-    registry: await registry(),
+  return {
+    target: 'static',
+    ssr: true,
 
-    docsTitle: 'Druxt Contrib',
-    docsTagline:
-      'Documentation for the community modules that extend a Druxt site.',
-    docsRepoUrl: 'https://github.com/druxt-contrib',
-    docsBadges: [],
+    router: { base },
 
-    // The links every Druxt site shows, plus where the modules live.
-    docsLinks: [
-      { text: 'GitHub', icon: 'github', href: 'https://github.com/druxt-contrib' },
-      { text: 'Discord', icon: 'discord', href: 'https://discord.druxtjs.org' },
-    ],
-  },
+    publicRuntimeConfig: {
+      // The registry as it stood when this site was built.
+      registry: modules,
 
-  head: {
-    titleTemplate: '%s - Druxt Contrib',
-    htmlAttrs: { lang: 'en' },
-    meta: [
-      { charset: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-    ],
-    script: [
-      {
-        // The theme is set before the first paint, so a reader who prefers
-        // dark does not see a white page first.
-        hid: 'druxt-theme-init',
-        innerHTML:
-          "(function(){try{var k='druxt-color-mode';var p=localStorage.getItem(k)||'system';var v=p==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;document.documentElement.setAttribute('data-theme',v)}catch(e){}})()",
-      },
-    ],
-    __dangerouslyDisableSanitizersByTagID: {
-      'druxt-theme-init': ['innerHTML'],
+      docsTitle: 'Druxt Contrib',
+      docsTagline:
+        'Documentation for the community modules that extend a Druxt site.',
+      docsRepoUrl: 'https://github.com/druxt-contrib',
+      docsBadges: [],
+
+      // The links every Druxt site shows, plus where the modules live.
+      docsLinks: [
+        {
+          text: 'GitHub',
+          icon: 'github',
+          href: 'https://github.com/druxt-contrib',
+        },
+        {
+          text: 'Discord',
+          icon: 'discord',
+          href: 'https://discord.druxtjs.org',
+        },
+      ],
     },
-  },
 
-  // No @nuxt/postcss8: Nuxt 2.18 is already on postcss 8, and the module
-  // drags in css-loader 5, whose webpack 5 is hoisted over the webpack 4
-  // that Nuxt 2 builds with. The build then fails inside
-  // html-webpack-plugin, nowhere near the cause.
-  buildModules: ['@nuxtjs/tailwindcss', '@nuxtjs/color-mode'],
-
-  colorMode: {
-    classSuffix: '',
-    dataValue: 'theme',
-    storageKey: 'druxt-color-mode',
-  },
-
-  // @druxt/dui before @nuxt/content, deliberately. Content parses every
-  // file while it starts up, so a hook registered by a module listed after it
-  // is registered too late and never runs.
-  modules: [
-    [
-      '@druxt/dui',
-      {
-        // Where a link that leaves the site's own pages points instead: the
-        // same file on GitHub.
-        repoUrl: 'https://github.com/druxt-contrib/druxt-contrib.github.io',
-        gitRef: 'main',
+    head: {
+      titleTemplate: '%s - Druxt Contrib',
+      htmlAttrs: { lang: 'en' },
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      ],
+      script: [
+        {
+          // The theme is set before the first paint, so a reader who prefers
+          // dark does not see a white page first.
+          hid: 'druxt-theme-init',
+          innerHTML:
+            "(function(){try{var k='druxt-color-mode';var p=localStorage.getItem(k)||'system';var v=p==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;document.documentElement.setAttribute('data-theme',v)}catch(e){}})()",
+        },
+      ],
+      __dangerouslyDisableSanitizersByTagID: {
+        'druxt-theme-init': ['innerHTML'],
       },
-    ],
-    '@nuxt/content',
-  ],
+    },
 
-  generate: { fallback: '404.html' },
-})
+    // No @nuxt/postcss8: Nuxt 2.18 is already on postcss 8, and the module
+    // drags in css-loader 5, whose webpack 5 is hoisted over the webpack 4
+    // that Nuxt 2 builds with. The build then fails inside
+    // html-webpack-plugin, nowhere near the cause.
+    buildModules: ['@nuxtjs/tailwindcss', '@nuxtjs/color-mode'],
+
+    colorMode: {
+      classSuffix: '',
+      dataValue: 'theme',
+      storageKey: 'druxt-color-mode',
+    },
+
+    // @druxt/dui before @nuxt/content, deliberately. Content parses every
+    // file while it starts up, so a hook registered by a module listed after it
+    // is registered too late and never runs.
+    modules: [
+      [
+        '@druxt/dui',
+        {
+          // Where a link that leaves the site's own pages points instead: the
+          // same file on GitHub.
+          repoUrl: 'https://github.com/druxt-contrib/druxt-contrib.github.io',
+          gitRef: 'main',
+          // This site is the root of the domain, so it is the one that writes
+          // robots.txt, and the only place the sites served beneath it can be
+          // announced to a crawler.
+          siteUrl: ORIGIN,
+          sitemaps: siteSitemaps(modules, ORIGIN),
+          // The modules themselves, which is what an assistant reading this
+          // site is here for. The page renders the same list from the same
+          // registry.
+          llmsSections: [
+            {
+              title: 'Modules',
+              links: contrib(modules).map((module) => ({
+                text: title(module),
+                href: module.website,
+                notes: module.description,
+              })),
+            },
+          ],
+        },
+      ],
+      '@nuxt/content',
+    ],
+
+    generate: { fallback: '404.html' },
+  }
+}

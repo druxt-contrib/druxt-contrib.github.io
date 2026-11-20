@@ -89,7 +89,8 @@ export const grouped = (registry) => {
     const members = modules
       .filter((module) => module.category === key)
       .sort((a, b) => a.name.localeCompare(b.name))
-    if (members.length) groups.push({ key, title: LABELS.get(key) || key, modules: members })
+    if (members.length)
+      groups.push({ key, title: LABELS.get(key) || key, modules: members })
   }
   return groups
 }
@@ -100,6 +101,24 @@ export const grouped = (registry) => {
  * label, so until it carries one these are the exceptions.
  */
 const SPELLINGS = { ckeditor: 'CKEditor' }
+
+/**
+ * The sitemaps of the documentation sites served under this domain.
+ *
+ * A crawler reads `/robots.txt` and nothing else, so a site served from a
+ * path below this one has no way to announce its own sitemap. This page is
+ * the only place that can, and the registry already records where each
+ * module presents itself.
+ *
+ * @param {object} registry - The registry document.
+ * @param {string} origin - This site's origin, with no trailing slash.
+ * @returns {Array<string>} Absolute sitemap URLs, in registry order.
+ */
+export const siteSitemaps = (registry, origin) =>
+  contrib(registry)
+    .map((module) => module.website)
+    .filter((website) => website && website.startsWith(origin + '/'))
+    .map((website) => `${website.replace(/\/$/, '')}/sitemap.xml`)
 
 /** The module's own name, as a reader would say it. */
 export const title = (module) =>
